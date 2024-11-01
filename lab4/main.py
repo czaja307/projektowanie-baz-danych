@@ -80,9 +80,24 @@ def insert_users(n):
     for _ in range(n):
         first_name = fake.first_name()
         last_name = fake.last_name()
-        login = random_login(first_name, last_name)
 
+        # Generate a unique login
+        login = random_login(first_name, last_name)
+        while True:
+            cur.execute('SELECT COUNT(*) FROM "users" WHERE login = %s', (login,))
+            if cur.fetchone()[0] == 0:
+                break
+            login += str(random.randint(1, 9))  # Append a random digit to make it unique
+
+        # Generate a unique email
         email = random_email(first_name, last_name)
+        while True:
+            cur.execute('SELECT COUNT(*) FROM "users" WHERE email = %s', (email,))
+            if cur.fetchone()[0] == 0:
+                break
+            # Add a random digit before the "@" to modify the email
+            email = email.split('@')[0] + str(random.randint(1, 9)) + "@" + email.split('@')[1]
+
         password = fake.password(length=10, special_chars=True, upper_case=True)
         if "_" in password:
             password = password.replace("_", "!")
@@ -265,7 +280,7 @@ def insert_donations_and_examinations(n):
         lab_result_id = cur.fetchone()[0]
 
         # Insert blood bag with fk_donation_id, fk_lab_results_id, and fk_facility_id
-        volume = random.choice([450, 500, 550])  # Common blood bag volumes in ml
+        volume = random.randint(450, 550)  # Common blood bag volumes in ml
         facility_id = random.choice(facility_ids)  # Select a random facility
 
         cur.execute("""
