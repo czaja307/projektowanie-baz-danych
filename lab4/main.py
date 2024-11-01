@@ -45,7 +45,6 @@ def random_email(firstname, lastname):
         f"{lastname}{firstname[0]}",  # Last name + first initial
     ]
 
-
     options = [f"{option}{random.randint(1, 9999)}" for option in options]
 
     # Choose a random option and domain
@@ -89,11 +88,11 @@ def insert_users(n):
             password = password.replace("_", "!")
         phone_number = ''.join([str(random.randint(0, 9)) for _ in range(9)])
 
-
         cur.execute("""
             INSERT INTO "users" (first_name, last_name, login, email, password, phone_number)
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (first_name, last_name, login, email, password, phone_number))
+
 
 def insert_doctors(n):
     cur.execute('SELECT id FROM "users" ORDER BY random() LIMIT %s', (n,))
@@ -103,6 +102,7 @@ def insert_doctors(n):
             INSERT INTO "doctors" (fk_user_id)
             VALUES (%s)
         """, (user_id[0],))
+
 
 def insert_nurses(n):
     for _ in range(n):
@@ -114,6 +114,7 @@ def insert_nurses(n):
             VALUES (%s, %s, %s)
         """, (first_name, last_name, phone_number))
 
+
 def insert_moderators(n):
     cur.execute('SELECT id FROM "users" ORDER BY random() LIMIT %s', (n,))
     user_ids = cur.fetchall()
@@ -122,6 +123,7 @@ def insert_moderators(n):
             INSERT INTO "moderators" (fk_user_id)
             VALUES (%s)
         """, (user_id[0],))
+
 
 def insert_hospitals(n):
     cur.execute('SELECT id FROM "users" ORDER BY random() LIMIT %s', (n,))
@@ -133,6 +135,7 @@ def insert_hospitals(n):
             INSERT INTO "hospitals" (name, address, fk_user_id)
             VALUES (%s, %s, %s)
         """, (name, address, user_id[0]))
+
 
 def insert_donors(n):
     cur.execute('SELECT id FROM "users" ORDER BY random() LIMIT %s', (n,))
@@ -151,6 +154,7 @@ def insert_donors(n):
             VALUES (%s, %s, %s, ROW(%s, %s)::blood_info, %s)
         """, (pesel, birth_date, sex, blood_type, blood_rh, user_id[0]))
 
+
 def insert_drivers(n):
     for _ in range(n):
         first_name = fake.first_name()
@@ -160,6 +164,7 @@ def insert_drivers(n):
             VALUES (%s, %s)
         """, (first_name, last_name))
 
+
 def insert_transports(n):
     cur.execute('SELECT id FROM "drivers" ORDER BY random() LIMIT %s', (n,))
     driver_ids = cur.fetchall()
@@ -168,6 +173,7 @@ def insert_transports(n):
             INSERT INTO "transports" (fk_driver_id)
             VALUES (%s)
         """, (driver_id[0],))
+
 
 def insert_orders(n):
     # Fetch hospitals and transports from the database
@@ -220,7 +226,7 @@ def insert_donations_and_examinations(n):
         donation_id = cur.fetchone()[0]
 
         # Insert examination with fk_doctor_id
-        weight = round( random.uniform(50.0, 100.0), 2)  # Random weight between 50kg and 100kg
+        weight = round(random.uniform(50.0, 100.0), 2)  # Random weight between 50kg and 100kg
         height = random.randint(150, 200)  # Random height between 150cm and 200cm
         diastolic_blood_pressure = random.randint(60, 90)
         systolic_blood_pressure = random.randint(90, 140)
@@ -233,8 +239,9 @@ def insert_donations_and_examinations(n):
             INSERT INTO "examinations" (date, weight, height, diastolic_blood_pressure, systolic_blood_pressure, is_qualified, form_number, fk_donor_id, fk_doctor_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-        donation_date, weight, height, diastolic_blood_pressure, systolic_blood_pressure, is_qualified, form_number, donor_id[0],
-        doctor_id))
+            donation_date, weight, height, diastolic_blood_pressure, systolic_blood_pressure, is_qualified, form_number,
+            donor_id[0],
+            doctor_id))
 
         red_cells_count = round(random.uniform(4.0, 6.0), 2)
         white_cells_count = round(random.uniform(4.0, 11.0), 2)
@@ -254,7 +261,6 @@ def insert_donations_and_examinations(n):
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
         """, (lab_result_date, red_cells_count, white_cells_count, platelet_count,
               hemoglobin_level, hematocrit_level, glucose_level, is_qualified))
-
 
         lab_result_id = cur.fetchone()[0]
 
