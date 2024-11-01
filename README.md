@@ -1,1 +1,1 @@
-# programowanie-baz-danych
+# projektowanie-baz-danych
