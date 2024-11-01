@@ -253,7 +253,7 @@ def insert_donations_and_examinations(n):
 
         # Generate a unique form number
         while True:
-            form_number = random.randint(500000000, 600000000)
+            form_number = str(random.randint(500000000, 600000000))
             cur.execute('SELECT COUNT(*) FROM "examinations" WHERE form_number = %s', (form_number,))
             if cur.fetchone()[0] == 0:
                 break  # Unique form number found
@@ -309,6 +309,25 @@ def insert_facilities(n):
         """, (name, address, email, phone_number))
 
 
+def insert_certificates(n):
+    cur.execute('SELECT id FROM "donors" ORDER BY random() LIMIT %s', (n,))
+    donor_ids = cur.fetchall()
+
+    certificate_levels = ['I', 'II', 'III']  # Example certificate levels
+
+    for donor_id in donor_ids:
+        level = random.choice(certificate_levels)
+        acquisition_date = datetime.now() - timedelta(days=random.randint(0, 10000))
+
+        # Ensure unique donor and level combination
+        cur.execute('SELECT COUNT(*) FROM "certificates" WHERE fk_donor_id = %s AND level = %s', (donor_id[0], level))
+        if cur.fetchone()[0] == 0:  # Proceed only if this level doesn't exist for the donor
+            cur.execute("""
+                INSERT INTO "certificates" (level, acquisition_date, fk_donor_id)
+                VALUES (%s, %s, %s)
+            """, (level, acquisition_date, donor_id[0]))
+
+
 # Call functions to populate tables
 insert_users(5000)
 insert_doctors(20)
@@ -322,6 +341,7 @@ insert_orders(20)
 insert_facilities(5)
 for i in range(100):
     insert_donations_and_examinations(50)
+insert_certificates(100)
 
 # Commit and close connection
 conn.commit()
