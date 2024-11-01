@@ -159,7 +159,12 @@ def insert_donors(n):
     blood_rhs = ['+', '-']
     sexes = ['M', 'F']
     for user_id in user_ids:
-        pesel = ''.join([str(random.randint(0, 9)) for _ in range(11)])
+        # Generate a unique pesel
+        while True:
+            pesel = ''.join([str(random.randint(0, 9)) for _ in range(11)])
+            cur.execute('SELECT COUNT(*) FROM "donors" WHERE pesel = %s', (pesel,))
+            if cur.fetchone()[0] == 0:
+                break  # Unique pesel found
         birth_date = fake.date_of_birth(minimum_age=18, maximum_age=60)
         sex = random.choice(sexes)
         blood_type = random.choice(blood_types)
@@ -230,33 +235,36 @@ def insert_donations_and_examinations(n):
     nurse_ids = [nurse[0] for nurse in cur.fetchall()]
 
     for donor_id in donor_ids:
-        # Generate a random donation date
-        donation_date = datetime.now() - timedelta(days=random.randint(1, 30))  # Donation date
+        donation_date = datetime.now() - timedelta(days=random.randint(1, 30))
         nurse_id = random.choice(nurse_ids)
-        # Insert donation
+
         cur.execute("""
             INSERT INTO "donations" (date, fk_donor_id, fk_nurse_id)
             VALUES (%s, %s, %s) RETURNING id
         """, (donation_date, donor_id[0], nurse_id))
         donation_id = cur.fetchone()[0]
 
-        # Insert examination with fk_doctor_id
-        weight = round(random.uniform(50.0, 100.0), 2)  # Random weight between 50kg and 100kg
-        height = random.randint(150, 200)  # Random height between 150cm and 200cm
+        weight = round(random.uniform(50.0, 100.0), 2)
+        height = random.randint(150, 200)
         diastolic_blood_pressure = random.randint(60, 90)
         systolic_blood_pressure = random.randint(90, 140)
-        is_qualified = random.choice([True, True, True, True, True, True, True, True, False])
+        is_qualified = random.choice([True] * 8 + [False])
+        doctor_id = random.choice(doctor_ids)
 
-        doctor_id = random.choice(doctor_ids)  # Select random doctor ID
+        # Generate a unique form number
+        while True:
+            form_number = random.randint(500000000, 600000000)
+            cur.execute('SELECT COUNT(*) FROM "examinations" WHERE form_number = %s', (form_number,))
+            if cur.fetchone()[0] == 0:
+                break  # Unique form number found
 
-        form_number = random.randint(500000000, 600000000)
         cur.execute("""
-            INSERT INTO "examinations" (date, weight, height, diastolic_blood_pressure, systolic_blood_pressure, is_qualified, form_number, fk_donor_id, fk_doctor_id)
+            INSERT INTO "examinations" (date, weight, height, diastolic_blood_pressure, systolic_blood_pressure,
+                                        is_qualified, form_number, fk_donor_id, fk_doctor_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            donation_date, weight, height, diastolic_blood_pressure, systolic_blood_pressure, is_qualified, form_number,
-            donor_id[0],
-            doctor_id))
+            donation_date, weight, height, diastolic_blood_pressure, systolic_blood_pressure,
+            is_qualified, form_number, donor_id[0], doctor_id))
 
         red_cells_count = round(random.uniform(4.0, 6.0), 2)
         white_cells_count = round(random.uniform(4.0, 11.0), 2)
@@ -264,12 +272,10 @@ def insert_donations_and_examinations(n):
         hemoglobin_level = round(random.uniform(12.0, 18.0), 2)
         hematocrit_level = round(random.uniform(36.0, 52.0), 2)
         glucose_level = round(random.uniform(70, 140), 2)
-        is_qualified = random.choice([True, True, True, True, True, True, True, True, False])
+        is_qualified = random.choice([True] * 8 + [False])
         lab_result_date = donation_date + timedelta(days=random.randint(1, 7))
-        if lab_result_date > datetime.now():
-            lab_result_date = datetime.now()
+        lab_result_date = min(lab_result_date, datetime.now())
 
-        # Insert lab result associated with the examination
         cur.execute("""
             INSERT INTO "lab_results" (date, red_cells_count, white_cells_count, platelet_count,
                                        hemoglobin_level, hematocrit_level, glucose_level, is_qualified)
@@ -279,9 +285,8 @@ def insert_donations_and_examinations(n):
 
         lab_result_id = cur.fetchone()[0]
 
-        # Insert blood bag with fk_donation_id, fk_lab_results_id, and fk_facility_id
-        volume = random.randint(450, 550)  # Common blood bag volumes in ml
-        facility_id = random.choice(facility_ids)  # Select a random facility
+        volume = random.randint(450, 550)
+        facility_id = random.choice(facility_ids)
 
         cur.execute("""
             INSERT INTO "blood_bags" (volume, fk_donation_id, fk_lab_results_id, fk_facility_id)
