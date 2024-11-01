@@ -98,10 +98,18 @@ def insert_users(n):
             # Add a random digit before the "@" to modify the email
             email = email.split('@')[0] + str(random.randint(1, 9)) + "@" + email.split('@')[1]
 
+        # Generate a unique phone number
+        phone_number = ''.join([str(random.randint(0, 9)) for _ in range(9)])
+        while True:
+            cur.execute('SELECT COUNT(*) FROM "users" WHERE phone_number = %s', (phone_number,))
+            if cur.fetchone()[0] == 0:
+                break
+            phone_number = ''.join(
+                [str(random.randint(0, 9)) for _ in range(9)])  # Generate a new phone number if not unique
+
         password = fake.password(length=10, special_chars=True, upper_case=True)
         if "_" in password:
             password = password.replace("_", "!")
-        phone_number = ''.join([str(random.randint(0, 9)) for _ in range(9)])
 
         cur.execute("""
             INSERT INTO "users" (first_name, last_name, login, email, password, phone_number)
@@ -328,6 +336,42 @@ def insert_certificates(n):
             """, (level, acquisition_date, donor_id[0]))
 
 
+def assign_facilities_to_nurses():
+    # Fetch all nurse IDs
+    cur.execute('SELECT id FROM "nurses"')
+    nurse_ids = [nurse[0] for nurse in cur.fetchall()]
+
+    # Fetch all facility IDs
+    cur.execute('SELECT id FROM "facilities"')
+    facility_ids = [facility[0] for facility in cur.fetchall()]
+
+    for nurse_id in nurse_ids:
+        selected_facilities = random.sample(facility_ids, random.randint(1, 3))
+        for facility_id in selected_facilities:
+            cur.execute("""
+                INSERT INTO "nurses_facilities" (fk_nurse_id, fk_facility_id)
+                VALUES (%s, %s)
+            """, (nurse_id, facility_id))
+
+
+def assign_facilities_to_doctors():
+    # Fetch all doctor IDs
+    cur.execute('SELECT id FROM "doctors"')
+    doctor_ids = [doctor[0] for doctor in cur.fetchall()]
+
+    # Fetch all facility IDs
+    cur.execute('SELECT id FROM "facilities"')
+    facility_ids = [facility[0] for facility in cur.fetchall()]
+
+    for doctor_id in doctor_ids:
+        selected_facilities = random.sample(facility_ids, random.randint(1, 3))
+        for facility_id in selected_facilities:
+            cur.execute("""
+                INSERT INTO "doctors_facilities" (fk_doctor_id, fk_facility_id)
+                VALUES (%s, %s)
+            """, (doctor_id, facility_id))
+
+
 # Call functions to populate tables
 insert_users(5000)
 insert_doctors(20)
@@ -342,6 +386,8 @@ insert_facilities(5)
 for i in range(100):
     insert_donations_and_examinations(50)
 insert_certificates(100)
+assign_facilities_to_nurses()
+assign_facilities_to_doctors()
 
 # Commit and close connection
 conn.commit()
