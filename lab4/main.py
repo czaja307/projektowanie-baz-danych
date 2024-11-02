@@ -168,15 +168,15 @@ def insert_donors(n):
     sexes = ['M', 'F']
     for user_id in user_ids:
         # Generate a unique pesel
-        while True:
-            pesel = ''.join([str(random.randint(0, 9)) for _ in range(11)])
-            cur.execute('SELECT COUNT(*) FROM "donors" WHERE pesel = %s', (pesel,))
-            if cur.fetchone()[0] == 0:
-                break  # Unique pesel found
         birth_date = fake.date_of_birth(minimum_age=18, maximum_age=60)
         sex = random.choice(sexes)
         blood_type = random.choice(blood_types)
         blood_rh = random.choice(blood_rhs)
+        while True:
+            pesel = fake.pesel(datetime.combine(birth_date, datetime.min.time()), sex)
+            cur.execute('SELECT COUNT(*) FROM "donors" WHERE pesel = %s', (pesel,))
+            if cur.fetchone()[0] == 0:
+                break  # Unique pesel found
         cur.execute("""
             INSERT INTO "donors" (pesel, birth_date, sex, blood_info, fk_user_id)
             VALUES (%s, %s, %s, ROW(%s, %s)::blood_info, %s)
