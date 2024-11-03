@@ -10,8 +10,8 @@ Faker.seed(12)
 # Connect to PostgreSQL database
 conn = psycopg2.connect(
     dbname="blood",
-    user="apoloniaabramowicz",
-    password="stonka",
+    user="postgres",
+    password="1234",
     host="localhost",
     port="5432"
 )
