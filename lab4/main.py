@@ -10,8 +10,8 @@ Faker.seed(12)
 # Connect to PostgreSQL database
 conn = psycopg2.connect(
     dbname="blood",
-    user="postgres",
-    password="1234",
+    user="apoloniaabramowicz",
+    password="stonka",
     host="localhost",
     port="5432"
 )
@@ -372,6 +372,49 @@ def assign_facilities_to_doctors():
             """, (doctor_id, facility_id))
 
 
+def assign_blood_bags_to_orders():
+    # fetch all available orders that need blood bags
+    cur.execute('SELECT id FROM "orders" WHERE state = %s', ('AWAITING',))
+    order_ids = [order[0] for order in cur.fetchall()]
+
+    # fetch blood bags that are available and qualified
+    cur.execute("""
+        SELECT bb.id
+        FROM "blood_bags" bb
+        JOIN "lab_results" lr ON bb.fk_lab_results_id = lr.id
+        WHERE lr.is_qualified = true
+            AND bb.id NOT IN (SELECT fk_blood_bag_id FROM "blood_bags_orders")
+    """)
+
+    available_blood_bag_ids = [bag[0] for bag in cur.fetchall()]
+
+    if not available_blood_bag_ids:
+        print("No blood bags available")
+        return
+
+    assigned_blood_bag_ids_count = 0
+    for order_id in order_ids:
+        if assigned_blood_bag_ids_count >= len(available_blood_bag_ids):
+            break
+
+        bag_needed = random.randint(1,3)
+
+        for _ in range(bag_needed):
+            if assigned_blood_bag_ids_count >= len(available_blood_bag_ids):
+                break
+
+            blood_bag_id = available_blood_bag_ids[assigned_blood_bag_ids_count]
+            cur.execute("""
+                INSERT INTO "blood_bags_orders" (fk_blood_bag_id, fk_order_id)
+                VALUES (%s, %s)
+            """,(blood_bag_id, order_id))
+            assigned_blood_bag_ids_count += 1
+
+    print(f'assigned blood bags: {assigned_blood_bag_ids_count}')
+
+
+
+
 # Call functions to populate tables
 insert_users(5000)
 insert_doctors(20)
@@ -388,6 +431,7 @@ for i in range(100):
 insert_certificates(100)
 assign_facilities_to_nurses()
 assign_facilities_to_doctors()
+assign_blood_bags_to_orders()
 
 # Commit and close connection
 conn.commit()
