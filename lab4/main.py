@@ -374,7 +374,7 @@ def assign_facilities_to_doctors():
 
 def assign_blood_bags_to_orders():
     # fetch all available orders that need blood bags
-    cur.execute('SELECT id FROM "orders" WHERE state = %s', ('AWAITING',))
+    cur.execute('SELECT id FROM "orders" WHERE state IN (%s,%s)', ('AWAITING', 'COMPLETED'))
     order_ids = [order[0] for order in cur.fetchall()]
 
     # fetch blood bags that are available and qualified
