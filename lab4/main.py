@@ -8,7 +8,6 @@ from faker import Faker
 
 # Initialize Faker for generating random names and other data
 fake = Faker(['pl-PL'])
-Faker.seed(12)
 
 load_dotenv(dotenv_path=Path('db.env'))
 
