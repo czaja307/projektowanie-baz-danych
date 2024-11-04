@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+from pathlib import Path
 import psycopg2
 import random
 from datetime import datetime, timedelta
@@ -7,13 +10,15 @@ from faker import Faker
 fake = Faker(['pl-PL'])
 Faker.seed(12)
 
+load_dotenv(dotenv_path=Path('db.env'))
+
 # Connect to PostgreSQL database
 conn = psycopg2.connect(
-    dbname="blood",
-    user="postgres",
-    password="1234",
-    host="localhost",
-    port="5432"
+    dbname=os.getenv('DB_DATABASE'),
+    user=os.getenv('DB_USER'),
+    password=os.getenv('DB_PASSWORD'),
+    host=os.getenv('DB_HOST'),
+    port=os.getenv('DB_PORT')
 )
 cur = conn.cursor()
 
@@ -348,10 +353,18 @@ def assign_facilities_to_nurses():
     for nurse_id in nurse_ids:
         selected_facilities = random.sample(facility_ids, random.randint(1, 3))
         for facility_id in selected_facilities:
+            # Check if the nurse-facility pair already exists
             cur.execute("""
-                INSERT INTO "nurses_facilities" (fk_nurse_id, fk_facility_id)
-                VALUES (%s, %s)
+                SELECT 1 FROM "nurses_facilities" 
+                WHERE fk_nurse_id = %s AND fk_facility_id = %s
             """, (nurse_id, facility_id))
+
+            # If the pair doesn't exist, insert it
+            if cur.fetchone() is None:
+                cur.execute("""
+                    INSERT INTO "nurses_facilities" (fk_nurse_id, fk_facility_id)
+                    VALUES (%s, %s)
+                """, (nurse_id, facility_id))
 
 
 def assign_facilities_to_doctors():
@@ -366,10 +379,18 @@ def assign_facilities_to_doctors():
     for doctor_id in doctor_ids:
         selected_facilities = random.sample(facility_ids, random.randint(1, 3))
         for facility_id in selected_facilities:
+            # Check if the doctor-facility pair already exists
             cur.execute("""
-                INSERT INTO "doctors_facilities" (fk_doctor_id, fk_facility_id)
-                VALUES (%s, %s)
+                SELECT 1 FROM "doctors_facilities" 
+                WHERE fk_doctor_id = %s AND fk_facility_id = %s
             """, (doctor_id, facility_id))
+
+            # If the pair doesn't exist, insert it
+            if cur.fetchone() is None:
+                cur.execute("""
+                    INSERT INTO "doctors_facilities" (fk_doctor_id, fk_facility_id)
+                    VALUES (%s, %s)
+                """, (doctor_id, facility_id))
 
 
 def assign_blood_bags_to_orders():
@@ -397,7 +418,7 @@ def assign_blood_bags_to_orders():
         if assigned_blood_bag_ids_count >= len(available_blood_bag_ids):
             break
 
-        bag_needed = random.randint(1,3)
+        bag_needed = random.randint(1, 3)
 
         for _ in range(bag_needed):
             if assigned_blood_bag_ids_count >= len(available_blood_bag_ids):
@@ -407,12 +428,10 @@ def assign_blood_bags_to_orders():
             cur.execute("""
                 INSERT INTO "blood_bags_orders" (fk_blood_bag_id, fk_order_id)
                 VALUES (%s, %s)
-            """,(blood_bag_id, order_id))
+            """, (blood_bag_id, order_id))
             assigned_blood_bag_ids_count += 1
 
     print(f'assigned blood bags: {assigned_blood_bag_ids_count}')
-
-
 
 
 # Call functions to populate tables
