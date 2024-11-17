@@ -231,7 +231,7 @@ def insert_donations_and_examinations(n):
     nurse_ids = [nurse[0] for nurse in cur.fetchall()]
 
     for donor_id in donor_ids:
-        donation_date = datetime.now() - timedelta(days=random.randint(1, 30))
+        donation_date = datetime.now() - timedelta(days=random.randint(1, 10000))
         nurse_id = random.choice(nurse_ids)
 
         cur.execute("""
