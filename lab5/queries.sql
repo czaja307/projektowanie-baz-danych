@@ -127,3 +127,93 @@ GROUP BY
     doctors.id, users.first_name, users.last_name
 ORDER BY
 	examination_count DESC;
+
+-- Statystyki dla placówek - liczba donacji, ilość zakwalifikowanych donacji i liczba dostępnych worków z krwią
+SELECT 
+    facilities.id AS facility_id,
+    facilities.name AS facility_name,
+       COUNT(donations.id) AS total_donations,
+	   (
+           SELECT COUNT(*)
+           FROM blood_bags bb
+           JOIN lab_results lr ON bb.fk_lab_results_id = lr.id
+           WHERE bb.fk_facility_id = facilities.id
+             AND lr.is_qualified IS TRUE
+       ) AS qualified_donations,
+       (
+           SELECT COUNT(*)
+           FROM blood_bags bb
+           JOIN lab_results lr ON bb.fk_lab_results_id = lr.id
+           LEFT JOIN blood_bags_orders bbo ON bb.id = bbo.fk_blood_bag_id
+           WHERE bb.fk_facility_id = facilities.id
+             AND lr.is_qualified IS TRUE
+             AND bbo.fk_blood_bag_id IS NULL
+       ) AS available_blood_bags
+FROM "facilities"
+LEFT JOIN "blood_bags" ON blood_bags.fk_facility_id = facilities.id
+LEFT JOIN "donations" ON blood_bags.fk_donation_id = donations.id
+LEFT JOIN "lab_results" ON blood_bags.fk_lab_results_id = lab_results.id
+GROUP BY facilities.id, facilities.name
+ORDER BY available_blood_bags DESC;
+
+
+-- Średni czas potrzebny na kwalifikację torebki krwi w placówce
+SELECT
+    facilities.id AS facility_id,
+    facilities.name AS facility_name,
+    AVG(lab_results.date - donations.date) AS avg_qualification_time
+FROM
+    lab_results
+JOIN
+    blood_bags ON lab_results.id = blood_bags.fk_lab_results_id
+JOIN
+    donations ON blood_bags.fk_donation_id = donations.id
+JOIN
+    facilities ON blood_bags.fk_facility_id = facilities.id
+GROUP BY
+    facilities.id, facilities.name
+ORDER BY
+    avg_qualification_time;
+
+
+-- Donorzy z certyfikatem i ilością oddanej krwi
+SELECT
+    donors.id,
+    users.first_name,
+    users.last_name,
+    certificates.level,
+    certificates.acquisition_date,
+    COALESCE(SUM(blood_bags.volume), 0) AS donated_blood_ml
+FROM donors
+JOIN users ON donors.fk_user_id = users.id
+JOIN certificates ON certificates.fk_donor_id = donors.id
+LEFT JOIN donations ON donations.fk_donor_id = donors.id
+LEFT JOIN blood_bags ON blood_bags.fk_donation_id = donations.id
+GROUP BY
+    donors.id, users.first_name, users.last_name, certificates.level, certificates.acquisition_date
+ORDER BY
+    certificates.level;
+
+
+-- Średnia ilość donacji na dawcę
+SELECT
+    AVG(donation_count) AS avg_donations_per_donor
+FROM (
+    SELECT COUNT(donations.id) AS donation_count
+    FROM donors
+    LEFT JOIN donations ON donations.fk_donor_id = donors.id
+    GROUP BY donors.id
+) AS donor_donations;
+
+-- Ilość zamówień zrobionych przez kazdy szpital
+SELECT
+    hospitals.id,
+    hospitals.name,
+    COUNT(orders.id) AS order_count
+FROM hospitals
+JOIN orders ON orders.fk_hospital_id = hospitals.id
+GROUP BY hospitals.id, hospitals.name
+ORDER BY order_count DESC;
+
+
+
