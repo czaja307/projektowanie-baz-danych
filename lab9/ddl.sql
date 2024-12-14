@@ -29,7 +29,7 @@ CREATE TABLE "orders" (
 
 -- alter existing
 ALTER TABLE "blood_bags"
-ADD COLUMN "realization_id" INTEGER,
+ADD COLUMN "fk_realization_id" INTEGER,
 ADD CONSTRAINT "fk_realization_id" FOREIGN KEY ("realization_id") REFERENCES "realizations" ("id") ON DELETE SET NULL;
 
 --move data
