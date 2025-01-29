@@ -275,7 +275,7 @@ for _ in range(COUNT_BLOODBAGS):
     maybe_order = random.choice([None, random.choice(orders_docs)])
 
     donation_date = fake_pl.date_between_dates(
-        date_start=donor["birth_date"].date(),
+        date_start=datetime.now() - timedelta(days=365 * 5),
         date_end=datetime.now().date()
     )
     donation_date = datetime.combine(donation_date, time.min)
@@ -293,7 +293,9 @@ for _ in range(COUNT_BLOODBAGS):
     lab_date = donation_date + timedelta(days=random.randint(1, 7))
     bag["lab_result"] = {
         "date": lab_date,
-        "is_qualified": fake_pl.boolean(chance_of_getting_true=80)
+        "is_qualified": fake_pl.boolean(chance_of_getting_true=80),
+        "hemoglobin_level": round(random.uniform(10, 20), 1),
+        "red_cells_count": round(random.uniform(3, 6), 1),
     }
 
     if maybe_order:
@@ -360,4 +362,25 @@ for doc in hospitals_collection.find({}, {"_id": 1, "user_id": 1}):
 
 print("Users updated with role profiles.")
 
-print("\nSeeding completed successfully!")
+possible_certificate_levels = ["I", "II", "III"]
+donors_with_certificates = random.sample(donors_ids, k=random.randint(100, 300))  # Adjust as needed
+
+updates = []
+for donor_id in donors_with_certificates:
+    num_certificates = random.randint(1, 2)  # Each donor can have 1-5 certificates
+    certificates = [
+        {
+            "level": random.choice(possible_certificate_levels),
+            "acquisitiion_date": datetime.combine(fake_pl.date_between_dates(
+                date_start=datetime(2015, 1, 1).date(),
+                date_end=datetime.now().date()
+            ), time.min)
+        }
+        for _ in range(num_certificates)
+    ]
+    updates.append({"_id": donor_id, "certificates": certificates})
+
+for update in updates:
+    donors_collection.update_one({"_id": update["_id"]}, {"$set": {"certificates": update["certificates"]}})
+
+print(f"Added certificates to {len(donors_with_certificates)} donors.")
