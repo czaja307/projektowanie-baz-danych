@@ -67,6 +67,41 @@ db.blood_bags.aggregate([
   }
 ]);
 
+//zlicza driverów i realizacje
+db.orders.aggregate([
+  { $unwind: "$realizations" },
+
+  {
+    $group: {
+      _id: "$realizations.transport.driver_id",
+      realizations_count: { $sum: 1 }
+    }
+  },
+
+  {
+    $lookup: {
+      from: "drivers",
+      localField: "_id",
+      foreignField: "_id",
+      as: "driver_info"
+    }
+  },
+
+  { $unwind: "$driver_info"},
+
+  {
+    $project: {
+      driver_id: "$_id",
+      name: "$driver_info.name",
+      last_name: "$driver_info.last_name",
+      realizations_count: 1
+    }
+  },
+
+  { $sort: { realizations_count: -1}}
+
+])
+
 
 //zlicza donorów i donacje
 //działa
