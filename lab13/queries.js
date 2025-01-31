@@ -1,5 +1,3 @@
-// liczba dawców per grupa krwi
-// działa
 db.donors.aggregate([
   {
     $group: {
@@ -20,23 +18,21 @@ db.donors.aggregate([
     }
   },
   {
-    $sort: {donor_count: 1} // ascending
+    $sort: {donor_count: 1}
   }
 ]);
 
 
-//dostępne blood bagi per grupa krwi
-//działa
 db.blood_bags.aggregate([
   {
-    // Must be qualified, and have no 'order' field
+
     $match: {
       "lab_result.is_qualified": true,
       order: {$exists: false}
     }
   },
   {
-    // "Join" donors using donation.donor_id
+
     $lookup: {
       from: "donors",
       localField: "donation.donor_id",
@@ -44,7 +40,7 @@ db.blood_bags.aggregate([
       as: "donor"
     }
   },
-  // Unwind the array of matched donor docs (should be exactly 1 if data is consistent)
+
   {$unwind: "$donor"},
   {
     $group: {
@@ -67,14 +63,14 @@ db.blood_bags.aggregate([
   }
 ]);
 
-//zlicza driverów i realizacje
+
 db.orders.aggregate([
-  { $unwind: "$realizations" },
+  {$unwind: "$realizations"},
 
   {
     $group: {
       _id: "$realizations.transport.driver_id",
-      realizations_count: { $sum: 1 }
+      realizations_count: {$sum: 1}
     }
   },
 
@@ -87,7 +83,7 @@ db.orders.aggregate([
     }
   },
 
-  { $unwind: "$driver_info"},
+  {$unwind: "$driver_info"},
 
   {
     $project: {
@@ -98,22 +94,20 @@ db.orders.aggregate([
     }
   },
 
-  { $sort: { realizations_count: -1}}
+  {$sort: {realizations_count: -1}}
 
 ])
 
 
-//zlicza donorów i donacje
-//działa
 db.blood_bags.aggregate([
-  // Group by the donor_id in donation
+
   {
     $group: {
       _id: "$donation.donor_id",
       donation_count: {$sum: 1}
     }
   },
-  // Lookup the donor to get name, last_name, user_id
+
   {
     $lookup: {
       from: "donors",
@@ -123,10 +117,8 @@ db.blood_bags.aggregate([
     }
   },
   {$unwind: "$donor"},
-  // Lookup the user for that donor (to get actual first_name/last_name from donors or from user?)
-  // BUT note: in your schema, "donor" has { name, last_name, user_id } directly.
-  // So you might or might not need to go to the users collection.
-  // Example showing if you want the user doc:
+
+
   {
     $project: {
       donor_id: "$_id",
@@ -140,8 +132,6 @@ db.blood_bags.aggregate([
 ]);
 
 
-//zdyskwaalifikowane donacje
-//działa
 db.donors.aggregate([
   {$unwind: "$examinations"},
   {
@@ -171,8 +161,7 @@ db.donors.aggregate([
   }
 ]);
 
-//donorzy którzy ponownie mogą oddać krew
-//działa
+
 db.blood_bags.aggregate([
   {
     $group: {
@@ -209,8 +198,6 @@ db.blood_bags.aggregate([
 ]);
 
 
-//pobiera pilne zamówienia oczekujące wraz z nazwą szpitala
-//działa
 db.orders.find(
   {
     state: "awaiting",
@@ -218,8 +205,7 @@ db.orders.find(
   },
 );
 
-//dawcy którzy oddali krew w ostatnim roku przynajmniej niż 5 razy
-//działa
+
 db.blood_bags.aggregate([
   {
     $match: {
@@ -231,12 +217,12 @@ db.blood_bags.aggregate([
   {
     $group: {
       _id: "$donation.donor_id",
-      donation_count: { $sum: 1 }
+      donation_count: {$sum: 1}
     }
   },
   {
     $match: {
-      donation_count: { $gte: 5 }
+      donation_count: {$gte: 5}
     }
   },
   {
@@ -247,7 +233,7 @@ db.blood_bags.aggregate([
       as: "donor"
     }
   },
-  { $unwind: "$donor" },
+  {$unwind: "$donor"},
   {
     $project: {
       _id: 0,
@@ -258,12 +244,11 @@ db.blood_bags.aggregate([
     }
   },
   {
-    $sort: { donation_count: -1 }
+    $sort: {donation_count: -1}
   }
 ]);
 
-// średnia waga i wzrost dawców
-//działa
+
 db.donors.aggregate([
   {$unwind: "$examinations"},
   {
@@ -282,17 +267,16 @@ db.donors.aggregate([
   }
 ]);
 
-//średnie wyniki badan dla każdej grupy krwi
-//działa
+
 db.blood_bags.aggregate([
   {
-    // Only consider those with lab_result if you want
+
     $match: {
       "lab_result.is_qualified": {$exists: true}
-      // "lab_result.hemoglobin_level": { $exists: true } etc
+
     }
   },
-  // Join donor
+
   {
     $lookup: {
       from: "donors",
@@ -302,17 +286,17 @@ db.blood_bags.aggregate([
     }
   },
   {$unwind: "$donor"},
-  // Group by donor's blood group
+
   {
     $group: {
       _id: {
         blood_type: "$donor.blood_type",
         blod_rh: "$donor.blod_rh"
       },
-      // example if you had numeric fields in lab_result
+
       avg_hemoglobin: {$avg: "$lab_result.hemoglobin_level"},
       avg_red_cells: {$avg: "$lab_result.red_cells_count"},
-      // etc...
+
     }
   },
   {
@@ -327,17 +311,16 @@ db.blood_bags.aggregate([
   }
 ]);
 
-//lista lekarzy którzy wykonali najwięcej badań w 2024 roku
-//NIE DZIAŁA
+
 db.donors.aggregate([
-  // Unwind examinations
+
   {$unwind: "$examinations"},
   {
-    // Filter only exams from 2024
+
     $match: {
       "examinations.date": {
-        $gte: new Date("2024-01-01T00:00:00Z"),  // Start of 2024
-        $lt: new Date("2025-01-01T00:00:00Z")   // Start of 2025
+        $gte: new Date("2024-01-01T00:00:00Z"),
+        $lt: new Date("2025-01-01T00:00:00Z")
       }
     }
   },
@@ -347,7 +330,7 @@ db.donors.aggregate([
       examination_count: {$sum: 1}
     }
   },
-  // Now $lookup the doctors doc
+
   {
     $lookup: {
       from: "doctors",
@@ -357,21 +340,20 @@ db.donors.aggregate([
     }
   },
   {$unwind: "$doctor_info"},
-  // If you also want the user info
+
   {
     $project: {
       doctor_id: "$_id",
       name: "$doctor_info.name",
       last_name: "$doctor_info.last_name",
-      // or from user_info if you want user doc
+
       examination_count: 1
     }
   },
   {$sort: {examination_count: -1}}
 ]);
 
-// statystyki dla placówek
-//działa
+
 db.blood_bags.aggregate([
   {
     $group: {
@@ -392,7 +374,7 @@ db.blood_bags.aggregate([
             {
               $and: [
                 {$eq: ["$lab_result.is_qualified", true]},
-                {$not: [{$ifNull: ["$order", false]}]} // i.e. order does NOT exist
+                {$not: [{$ifNull: ["$order", false]}]}
               ]
             },
             1,
@@ -402,7 +384,7 @@ db.blood_bags.aggregate([
       }
     }
   },
-  // then $lookup to get facility name:
+
   {
     $lookup: {
       from: "facilities",
@@ -427,11 +409,10 @@ db.blood_bags.aggregate([
   }
 ]);
 
-//średni czas między oddaniem krwi a wynikami badań
-//działa
+
 db.blood_bags.aggregate([
   {
-    // Filter out those that do not have lab_result or donation dates
+
     $match: {
       "lab_result.date": {$exists: true},
       "donation.date": {$exists: true}
@@ -441,17 +422,17 @@ db.blood_bags.aggregate([
     $group: {
       _id: "$facility_id",
       avg_qualification_time: {
-        // Calculate difference in milliseconds and then convert to hours
+
         $avg: {
           $divide: [
-            { $subtract: ["$lab_result.date", "$donation.date"] },
-            3600000 // Convert milliseconds to hours
+            {$subtract: ["$lab_result.date", "$donation.date"]},
+            3600000
           ]
         }
       }
     }
   },
-  // Join facility info
+
   {
     $lookup: {
       from: "facilities",
@@ -465,19 +446,18 @@ db.blood_bags.aggregate([
     $project: {
       facility_id: "$facility._id",
       facility_name: "$facility.name",
-      // Average qualification time in hours
+
       avg_qualification_time_in_hours: "$avg_qualification_time"
     }
   },
   {$sort: {avg_qualification_time_in_hours: 1}}
 ]);
 
-//dawcy z certifikatem
-//działa
+
 db.donors.aggregate([
-  // Unwind certificates first, or skip donors with none
+
   {$unwind: "$certificates"},
-  // Then we want to sum all blood bag volumes for each donor
+
   {
     $lookup: {
       from: "blood_bags",
@@ -493,7 +473,7 @@ db.donors.aggregate([
       last_name: "$last_name",
       "certificates.level": 1,
       "certificates.acquisitiion_date": 1,
-      // sum up all volumes from "bags"
+
       donated_blood_ml: {
         $sum: "$bags.volume"
       }
@@ -504,7 +484,7 @@ db.donors.aggregate([
   }
 ]);
 
-//średnia liczba donacji na dawcę
+
 db.blood_bags.aggregate([
   {
     $group: {
@@ -513,8 +493,8 @@ db.blood_bags.aggregate([
     }
   },
   {
-    // Now we have (donor_id, donation_count).
-    // We'll group them again to get overall average
+
+
     $group: {
       _id: null,
       avg_donations_per_donor: {$avg: "$donation_count"}
@@ -528,8 +508,7 @@ db.blood_bags.aggregate([
   }
 ]);
 
-//ilość zamówień na szpital
-//dziala
+
 db.orders.aggregate([
   {
     $group: {
